@@ -1,0 +1,38 @@
+
+    Model Architecture Choice: YOLOv8
+
+    Reasons for choosing YOLO:
+
+    1. **Edge Device Compatibility**:
+       - YOLO models are designed for real-time performance
+       - Can be easily deployed on edge devices (Jetson, mobile, etc.)
+       - Efficient inference with minimal computational requirements
+       - Support for model quantization and optimization
+
+    2. **Single-Stage Architecture**:
+       - Faster than two-stage detectors (Faster R-CNN)
+       - Better suited for real-time applications
+       - Simpler deployment pipeline
+
+    3. **Modern Features in YOLOv8**:
+       - Anchor-free detection head
+       - Decoupled head for better accuracy
+       - Advanced augmentation support
+       - Better small object detection
+
+    4. **Framework Choice (Ultralytics)**:
+       - Excellent documentation and community support
+       - Easy to use API
+       - Built-in augmentations and training optimizations
+       - Seamless export to various formats (ONNX, TensorRT, etc.)
+
+    5. **Comparison with alternatives**:
+       - vs Faster R-CNN: YOLO is faster, more suitable for edge
+       - vs RetinaNet: Similar accuracy but YOLO is more efficient
+       - vs EfficientDet: YOLO has better community support and easier deployment
+
+    6. **Model Size Selection (YOLOv8m)**:
+       - Medium model balances accuracy and speed
+       - ~25M parameters - deployable on most edge devices
+       - Can be further optimized with quantization
+    

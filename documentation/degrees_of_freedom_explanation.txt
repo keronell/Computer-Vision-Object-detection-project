@@ -1,0 +1,24 @@
+
+    Degrees of Freedom Decisions:
+
+    1. Object Size (32-640 pixels):
+       - Min 32px: Smaller objects are often too ambiguous for reliable detection
+       - Max 640px: Larger objects might dominate the image, reducing diversity
+       - This range captures most real-world object scales
+
+    2. Image Size (224-1024 pixels):
+       - Min 224px: Matches common CNN input sizes (ResNet, EfficientNet)
+       - Max 1024px: Balances detail preservation with computational efficiency
+       - Allows models to learn multi-scale features effectively
+
+    3. These constraints ensure:
+       - Sufficient object detail for accurate detection
+       - Reasonable training time and memory usage
+       - Good generalization to real-world scenarios
+       - Compatibility with common detection architectures
+
+    4. Flickr30k Dataset Benefits:
+       - High-quality images with diverse scenes
+       - Natural distribution of object sizes and contexts
+       - Real-world scenarios that match deployment conditions
+    

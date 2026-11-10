@@ -1,0 +1,17 @@
+# Florence-2 annotation + YOLOv8 training pipeline.
+# transformers is pinned: Florence-2 remote code is sensitive to the version.
+torch
+torchvision
+transformers==4.51.1
+einops
+timm
+ultralytics
+albumentations
+opencv-python
+numpy
+pandas
+matplotlib
+pillow
+pyyaml
+tqdm
+ipywidgets

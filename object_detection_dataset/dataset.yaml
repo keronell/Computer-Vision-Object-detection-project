@@ -1,0 +1,9 @@
+# Relative to this file, so the dataset resolves wherever the repo is cloned.
+path: .
+train: train/images
+val: val/images
+
+nc: 2
+names:
+  0: person
+  1: pet

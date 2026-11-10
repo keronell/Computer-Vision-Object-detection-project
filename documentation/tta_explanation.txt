@@ -1,0 +1,43 @@
+
+    Test Time Augmentation (TTA) for Annotation Quality Check:
+
+    1. Apply multiple augmentations to each training image:
+       - Horizontal flip
+       - Rotation (small angles: -10 to +10 degrees)
+       - Scale variations (0.8x to 1.2x)
+       - Slight color jittering
+
+    2. Run Florence-2 on each augmented version
+
+    3. Compare detections across augmentations:
+       - Consistent detections across augmentations indicate reliable annotations
+       - Objects detected in original but not in augmented versions might be edge cases
+       - Calculate IoU between corresponding boxes across augmentations
+       - Flag annotations with low consistency (IoU < 0.5) for manual review
+
+    4. Quality metrics:
+       - Consistency score = average IoU across all augmentation pairs
+       - Confidence score = percentage of augmentations detecting the object
+       - Annotations with consistency < 0.7 or confidence < 0.8 should be reviewed
+
+    Implementation approach:
+    ```python
+    def validate_with_tta(image, annotations):
+        augmentations = [
+            A.HorizontalFlip(p=1),
+            A.Rotate(limit=10, p=1),
+            A.RandomScale(scale_limit=0.2, p=1),
+            A.ColorJitter(brightness=0.2, contrast=0.2, p=1)
+        ]
+
+        aug_detections = []
+        for aug in augmentations:
+            aug_image = aug(image=image)['image']
+            detections = run_florence_detection(aug_image)
+            aug_detections.append(detections)
+
+        # Compare detections and calculate consistency
+        consistency_scores = calculate_consistency(annotations, aug_detections)
+        return consistency_scores
+    ```
+    

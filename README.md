@@ -1,121 +1,130 @@
+# Florence-2 → YOLOv8 Object Detection
 
-# Florence2-YOLO Object Detection
+An end-to-end detection pipeline that removes the annotation bottleneck: **Florence-2**
+generates bounding boxes zero-shot over unlabelled Flickr30k images, the low-confidence
+ones are filtered out, and the surviving labels train a **YOLOv8** detector on two
+classes - `person` and `pet` (dog, cat, horse).
 
-An end-to-end object detection pipeline that uses Florence-2 for zero-shot detection and YOLOv8 for fine-tuning on custom classes: `person` and `pet` (`dog`, `cat`, `horse`).  
-The project covers dataset creation, annotation filtering, augmentation strategies, training, evaluation, and visualization.
+The repository covers dataset construction, annotation filtering, augmentation,
+training, evaluation and inference.
 
-## Repository Structure
+![YOLOv8 detection on a held-out test image](results/test_image_result_1.jpg)
 
-```
-.
-├── dataset_creator.ipynb         # Florence2-based dataset generation + COCO output
-├── model_training.ipynb          # Training and evaluation of YOLOv8
-├── inference_and_viz.ipynb       # Inference with preprocessing & test-time tools
-├── object_detection_dataset/     # Saved images and COCO annotations
-├── yolo_training/                # YOLOv8 outputs (runs, weights, plots)
-├── documentation/                # TTA, Ensemble, DoF explanations
-├── requirements.txt              # Python dependencies
-└── README.md
-```
-
-## Project Pipeline
-
-1. **Dataset Creation**
-   - Collect images from Flickr30k
-   - Run Florence-2 to extract `person`/`pet` annotations
-   - Filter low-confidence detections and generate COCO dataset
-
-2. **Conversion to YOLO**
-   - Convert COCO annotations to YOLO format
-   - Generate `dataset.yaml` for Ultralytics
-
-3. **Training**
-   - Baseline (no augmentation)
-   - Full augmentation (mixup, mosaic, erasing, etc.)
-   - AutoResume + checkpoint saving
-
-4. **Evaluation**
-   - mAP@0.5 and mAP@0.5:0.95 per class
-   - Confusion matrix and PR curves
-
-5. **Inference & Preprocessing**
-   - CLAHE + sharpening + gamma correction
-   - Annotated output images and batch statistics
+---
 
 ## Results
 
-### Confusion Matrix  
-Insert here:  
-`/yolo_training/custom_detection_augmented/confusion_matrix_normalized.jpg`
+Two models were trained on the same generated dataset, differing only in augmentation.
+Final validation of each, as recorded in [`evaluation_summary.md`](evaluation_summary.md):
 
-Example:  
-`![Confusion Matrix](./yolo_training/custom_detection_augmented/confusion_matrix_normalized.jpg)`
+| Metric | Baseline | Augmented |
+| --- | --- | --- |
+| mAP@0.5 | 0.875 | 0.876 |
+| mAP@0.5:0.95 | **0.712** | 0.687 |
 
-### Sample Predictions  
-Insert enhanced image vs. raw image comparison:  
-- Original Image  
-- Preprocessed Image  
-- YOLOv8 Detection Results
+Best epoch reached during training, from the raw logs in `results.csv`:
 
-## Key Observations
+| Run | best mAP@0.5 | best mAP@0.5:0.95 | best epoch |
+| --- | --- | --- | --- |
+| `custom_detection_baseline` | 0.896 | 0.721 | 150 |
+| `custom_detection_augmented` | 0.896 | 0.720 | 138 |
 
-- High precision for `person`, slightly weaker recall for `pet`
-- Misclassifications mostly happen between `pet` and background
-- Florence-2 tends to over-label or under-label small objects like cats
+**The honest conclusion: the heavier augmentation did not improve accuracy here.**
+The two runs land within noise of each other on mAP@0.5, and the augmented model is
+slightly *worse* on the stricter mAP@0.5:0.95 in final validation. Its one measurable
+edge is reaching its best epoch a little sooner. On a dataset whose labels are
+themselves model-generated, label noise - not augmentation - is the limiting factor.
 
-## Work in Progress
+The two runs differ in `degrees` (0 → 10) and `mixup` (0 → 0.2); mosaic (1.0) and
+random erasing (0.4) are on in both. See the `args.yaml` in each run directory.
 
-| Feature                  | Status         |
-|--------------------------|----------------|
-| Model Enhancement        | YOLOv8-L used, upgradeable to YOLOv8-X |
-| Class Balance            | Pet class needs more cat samples |
-| Threshold Tuning         | Per-class score thresholds defined |
-| Label Validation         | Manually check Florence-2 pet images |
-| Dataset Balancing        | Ensure equal images per class and subclass |
-| Hyperparameter Tuning    | Ongoing |
+Per-run curves and matrices are in
+[`yolo_training/`](yolo_training): confusion matrix (raw and normalised), P / R / F1 /
+PR curves, `results.png` and the full `results.csv`.
 
-## How to Run
+### Known limitations
 
-1. **Install requirements**
+- **Person recall is the weak point.** In the sample image above the horse is detected
+  at 0.97 but the handler is missed entirely. Florence-2 tends to under-label people in
+  cluttered scenes, and the detector inherits that gap.
+- **Class imbalance** between `person` and `pet` was never corrected.
+- **`pet` merges dog, cat and horse** into one class, so the model is not asked to
+  separate them.
+- Annotations were never manually audited; quality is bounded by Florence-2's output.
+
+---
+
+## Pipeline
+
+**1 · Dataset creation** - [`dataset_creation.ipynb`](dataset_creation.ipynb)
+Runs Florence-2 over Flickr30k images, keeps detections above a confidence threshold,
+maps the raw vocabulary onto `person` / `pet`, applies augmentation to under-represented
+classes, and writes COCO JSON.
+
+**2 · Conversion** - same notebook
+COCO → YOLO `.txt` labels plus a `dataset.yaml` for Ultralytics.
+
+**3 · Training** - [`model_training.ipynb`](model_training.ipynb)
+Trains YOLOv8 twice (baseline and augmented), 200-epoch budget with `patience: 30`,
+`imgsz: 640`, `batch: 16`, checkpointing and resume. Evaluates mAP@0.5 and mAP@0.5:0.95
+and writes confusion matrices and PR curves.
+
+**4 · Inference** - [`inference_code.ipynb`](inference_code.ipynb)
+Runs the trained weights on new images with a CLAHE + sharpening + gamma preprocessing
+stage. Raw vs preprocessed on the same photo: `pet 0.92` → `pet 0.97`
+([`results/test_image_result.jpg`](results/test_image_result.jpg) vs
+[`results/test_image_result_1.jpg`](results/test_image_result_1.jpg)).
+
+---
+
+## Layout
+
+```
+dataset_creation.ipynb              Florence-2 annotation → filtering → COCO → YOLO
+model_training.ipynb                YOLOv8 training and evaluation
+inference_code.ipynb                inference with preprocessing
+
+object_detection_dataset/
+  dataset.yaml                      Ultralytics config (2 classes)
+  annotations/*.json                generated COCO annotations (train / val)
+
+yolo_training/
+  custom_detection_baseline/        args, curves, confusion matrices, results.csv
+  custom_detection_augmented/       same, with rotation + mixup enabled
+
+results/                            test image, raw and preprocessed detections
+documentation/                      TTA, ensembling and degrees-of-freedom notes
+evaluation_summary.md               baseline vs augmented comparison
+model_choice_explanation.txt        why YOLOv8 over Faster R-CNN / RetinaNet / EfficientDet
+training_insights.txt               observations collected during training
+```
+
+## Not in this repository
+
+Source imagery, the generated dataset and all model weights are excluded - together
+they run to roughly 9 GB, and GitHub caps a single file at 100 MB.
+
+| Excluded | How to get it back |
+| --- | --- |
+| `flickr30k_images/` | [Flickr30k](https://www.kaggle.com/datasets/hsankesara/flickr-image-dataset) (CC) |
+| `object_detection_dataset/train/`, `val/` | re-run `dataset_creation.ipynb` |
+| `yolo_training/*/weights/*.pt` | re-run `model_training.ipynb` |
+| `yolov8m.pt`, `yolov8l.pt`, `yolo11n.pt` | downloaded automatically by Ultralytics |
+
+The generated COCO annotations **are** committed, so the dataset can be rebuilt from the
+original images without re-running Florence-2.
+
+## Setup
 
 ```bash
 pip install -r requirements.txt
 ```
 
-2. **Run Dataset Generator**
+`transformers` is pinned to `4.51.1` - Florence-2 loads remote code and is sensitive to
+the version. A CUDA GPU is strongly recommended for both annotation and training.
 
-```bash
-python dataset_creator.ipynb
-```
-
-3. **Train Model**
-
-```bash
-python model_training.ipynb
-```
-
-4. **Inference**
-
-```bash
-python inference_and_viz.ipynb
-```
+Then open the notebooks in order: `dataset_creation` → `model_training` → `inference_code`.
 
 ## License
 
-MIT License © 2025 Vlad Pavlyuk  
-Dataset built using Flickr30k (Creative Commons)
-
-## TODOs
-
-- [ ] Add more cat images to balance subclasses  
-- [ ] Improve filtering logic for Florence detections  
-- [ ] Enable Test-Time Augmentation (TTA) for evaluation  
-- [ ] Document annotation QA process  
-
-## Image Placeholders
-
-- `results/label_examples.jpg`  
-- `results/sample_inference.jpg`  
-- `documentation/tta_explanation.txt`  
-- `documentation/degrees_of_freedom_explanation.txt`  
-- `runs/detect/val*/` evaluation snapshots  
+MIT © 2025 Vlad Pavlyuk. Dataset built from Flickr30k (Creative Commons).

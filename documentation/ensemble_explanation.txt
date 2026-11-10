@@ -1,0 +1,49 @@
+
+    Ensemble Methods for Annotation Quality Check:
+
+    1. Use multiple pre-trained models:
+       - Florence-2-large (primary)
+       - Florence-2-base (secondary)
+       - Other vision-language models like OWL-ViT or GLIP
+
+    2. Ensemble voting strategy:
+       - Run all models on the same image
+       - Match detections across models using IoU threshold (0.5)
+       - Apply majority voting: keep annotations detected by >50% of models
+
+    3. Confidence scoring:
+       - High confidence: All models agree (IoU > 0.7)
+       - Medium confidence: Majority models agree (IoU > 0.5)
+       - Low confidence: Only one model detects
+
+    4. Quality control:
+       - Automatically accept high confidence annotations
+       - Flag medium confidence for quick review
+       - Manually review or discard low confidence annotations
+
+    5. Benefits:
+       - Reduces model-specific biases
+       - Improves annotation reliability
+       - Identifies ambiguous cases that need human review
+
+    Implementation approach:
+    ```python
+    def validate_with_ensemble(image):
+        models = [
+            load_florence2_large(),
+            load_florence2_base(),
+            load_owl_vit()  # if available
+        ]
+
+        all_detections = []
+        for model in models:
+            detections = model.detect(image)
+            all_detections.append(detections)
+
+        # Apply voting mechanism
+        final_detections = ensemble_vote(all_detections, iou_threshold=0.5)
+        confidence_scores = calculate_confidence(final_detections, all_detections)
+
+        return final_detections, confidence_scores
+    ```
+    

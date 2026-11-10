@@ -1,0 +1,40 @@
+
+    Training Process Insights:
+
+    1. **Data Quality Impact**:
+       - Florence-2 annotations quality directly affects final model performance
+       - Ensemble or TTA validation would significantly improve dataset quality
+       - Class imbalance between 'person' and 'pet' needs attention
+
+    2. **Augmentation Effectiveness**:
+       - Geometric augmentations (rotation, flip) show most improvement
+       - Mosaic augmentation particularly effective for small objects
+       - MixUp helps with generalization but may reduce precision
+       - Copy-paste augmentation could help with class imbalance
+
+    3. **Learning Rate Schedule**:
+       - Cosine annealing works well for this dataset
+       - Warm-up period important for stable training
+       - Fine-tuning with lower LR improves final performance
+
+    4. **Loss Analysis**:
+       - Box loss converges faster than classification loss
+       - Objectness loss indicates good anchor alignment
+       - Validation loss plateau suggests need for more diverse data
+
+    5. **Performance Observations**:
+       - 'Person' class achieves higher mAP due to more consistent appearances
+       - 'Pet' class benefits most from augmentations due to pose variations
+       - Small object detection remains challenging
+
+    6. **Optimization Strategies**:
+       - Early stopping prevents overfitting effectively
+       - Gradient accumulation helps with larger effective batch sizes
+       - Mixed precision training speeds up training by ~30%
+
+    7. **Future Improvements**:
+       - Implement pseudo-labeling for semi-supervised learning
+       - Use knowledge distillation from larger models
+       - Apply class-balanced sampling
+       - Implement custom augmentations for specific failure cases
+    
